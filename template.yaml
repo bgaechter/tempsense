@@ -1,0 +1,66 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  tempsense
+  
+  Fetch thermostat data from danfoss ally api
+
+Globals:
+  Function:
+    Timeout: 5
+    MemorySize: 128
+
+Resources:
+  FetchDataFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      CodeUri: fetch-data/
+      Handler: bootstrap
+      Runtime: provided.al2
+      Role: !GetAtt FetchDataFunctionRole.Arn
+      Architectures:
+        - arm64
+      Events:
+        ScheduleEvent:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: "rate(1 minute)"
+      Environment: 
+        Variables:
+          DANFOSS_API_KEY: '{{resolve:secretsmanager:tempsense/ally:SecretString:ApiKey}}'
+          DANFOSS_API_SECRET: '{{resolve:secretsmanager:tempsense/ally:SecretString:ApiSecret}}'
+          TIMESTREAM_DATABASE: !Ref TempsenseTimeStreamDatabase
+          TIMESTREAM_TABLE: !Ref TempsenseTimeStreamTable
+  TempsenseTimeStreamDatabase:
+    Type: AWS::Timestream::Database
+    Properties: 
+      DatabaseName: tempsense
+  TempsenseTimeStreamTable:
+    Type: AWS::Timestream::Table
+    Properties:
+      TableName: "ally"
+      DatabaseName: !Ref TempsenseTimeStreamDatabase
+      RetentionProperties:
+        MemoryStoreRetentionPeriodInHours: "48"
+        MagneticStoreRetentionPeriodInDays: "30"
+  FetchDataFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      - arn:aws:iam::aws:policy/AmazonTimestreamFullAccess
+
+Outputs:
+  FunctionName:
+    Value: !Ref FetchDataFunction
+    Description: Name of the Lambda function
+
