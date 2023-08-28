@@ -193,6 +193,34 @@ func writeToTimestrean(devices *DevicesResponse) {
 					TimeUnit:         aws.String("SECONDS"),
 				})
 			}
+			if status.Code == "va_humidity" {
+				val, err := interfaceToFloat(status.Value)
+				if err != nil {
+					log.Error(err)
+				}
+				val = val / 10
+				records = append(records, &timestreamwrite.Record{
+					Dimensions: []*timestreamwrite.Dimension{
+						{
+							Name:  aws.String("name"),
+							Value: aws.String(device.Name),
+						},
+						{
+							Name:  aws.String("id"),
+							Value: aws.String(device.ID),
+						},
+						{
+							Name:  aws.String("type"),
+							Value: aws.String(device.DeviceType),
+						},
+					},
+					MeasureName:      aws.String("humidity"),
+					MeasureValue:     aws.String(strconv.FormatFloat(val, 'f', 2, 64)),
+					MeasureValueType: aws.String("DOUBLE"),
+					Time:             aws.String(strconv.FormatInt(currentTimeInSeconds, 10)),
+					TimeUnit:         aws.String("SECONDS"),
+				})
+			}
 		}
 	}
 

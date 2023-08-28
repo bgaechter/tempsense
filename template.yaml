@@ -26,13 +26,13 @@ Resources:
         ScheduleEvent:
           Type: ScheduleV2
           Properties:
-            ScheduleExpression: "rate(1 minute)"
+            ScheduleExpression: "rate(5 minute)"
       Environment: 
         Variables:
           DANFOSS_API_KEY: '{{resolve:secretsmanager:tempsense/ally:SecretString:ApiKey}}'
           DANFOSS_API_SECRET: '{{resolve:secretsmanager:tempsense/ally:SecretString:ApiSecret}}'
           TIMESTREAM_DATABASE: !Ref TempsenseTimeStreamDatabase
-          TIMESTREAM_TABLE: !Ref TempsenseTimeStreamTable
+          TIMESTREAM_TABLE: "ally"
   TempsenseTimeStreamDatabase:
     Type: AWS::Timestream::Database
     Properties: 
@@ -43,8 +43,8 @@ Resources:
       TableName: "ally"
       DatabaseName: !Ref TempsenseTimeStreamDatabase
       RetentionProperties:
-        MemoryStoreRetentionPeriodInHours: "48"
-        MagneticStoreRetentionPeriodInDays: "30"
+        MemoryStoreRetentionPeriodInHours: "24"
+        MagneticStoreRetentionPeriodInDays: "14"
   FetchDataFunctionRole:
     Type: AWS::IAM::Role
     Properties:
